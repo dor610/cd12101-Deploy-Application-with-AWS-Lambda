@@ -1,15 +1,22 @@
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 import { getUserId, todoExists  } from '../utils.mjs'
+import { createLogger } from '../../utils/logger.mjs'
+
+const logger = createLogger('auth');
 
 const dynamoDbDocument = DynamoDBDocument.from(new DynamoDB());
+const tableName = process.env.TODOS_TABLE;
 
 export async function handler(event) {
   const todoId = event.pathParameters.todoId;
   const userId = getUserId(event);
   // TODO: Remove a TODO item by id
-  let exist = todoExists(todoId, userId, tableName);
-  if (!exist) {
+  if (!todoExists(todoId, userId, tableName)) {
+    logger.error("Fail to delete TODO ", {
+      message: `TODO does not exist`,
+      todoId: todoId
+    })
     return {
       statusCode: 404,
       headers: {
@@ -28,13 +35,18 @@ export async function handler(event) {
         "S": todoId
       },
       "userId": {
-        "S": ""
+        "S": userId
       }
     },
-    "TableName": "tableName"
+    "TableName": tableName
   };
 
   await dynamoDbDocument.delete(input)
+
+  logger.info("Deleted sucessfully ", {
+    message: "TODO has been deleted successfully",
+    todoId: todoId
+  })
 
   return {
     statusCode: 204,

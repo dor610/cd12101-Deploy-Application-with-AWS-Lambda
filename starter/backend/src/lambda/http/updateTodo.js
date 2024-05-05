@@ -1,8 +1,12 @@
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 import { getUserId, todoExists  } from '../utils.mjs'
+import { createLogger } from '../../utils/logger.mjs'
 
-const dynamoDbDocument = DynamoDBDocument.from(new DynamoDB())
+const logger = createLogger('auth');
+
+const dynamoDbDocument = DynamoDBDocument.from(new DynamoDB());
+const tableName = process.env.TODOS_TABLE;
 
 export async function handler(event) {
   const todoId = event.pathParameters.todoId;
@@ -11,6 +15,10 @@ export async function handler(event) {
   // TODO: Update a TODO item with the provided id using values in the "updatedTodo" object
   let exist = todoExists(todoId, userId, tableName);
   if (!exist) {
+    logger.error("Failed to update TODO ", {
+      message: "TODO does not exist",
+      todoId: todoId
+    });
     return {
       statusCode: 404,
       headers: {
@@ -53,7 +61,12 @@ export async function handler(event) {
     "UpdateExpression": "SET #DD = :dd, #N = :n, #D = :d"
   };
 
-  const result = await dynamoDbDocument.update(input);
+  await dynamoDbDocument.update(input);
+
+  logger.info("Updated successfully ", {
+    message: "TODO has been updated successfully",
+    todoId: todoId
+  })
 
   return {
     statusCode: 204,
