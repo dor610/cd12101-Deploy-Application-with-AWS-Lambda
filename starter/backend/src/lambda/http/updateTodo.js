@@ -1,6 +1,6 @@
 import { getUserId } from '../utils.mjs'
 import { createLogger } from '../../utils/logger.mjs'
-import { todoExists, updateTodo } from '../../service/TodoService.mjs'
+import { todoExists, updateTodo } from '../../businessLogic/TodoService.mjs'
 import { generateReponse, generateReponseWithoutBody } from '../../response/GenericResponse.mjs'
 import middy from '@middy/core'
 import cors from '@middy/http-cors'

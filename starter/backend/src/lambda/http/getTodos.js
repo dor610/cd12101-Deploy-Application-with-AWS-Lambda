@@ -1,5 +1,5 @@
 import { createLogger } from '../../utils/logger.mjs'
-import { getTodos } from '../../service/TodoService.mjs';
+import { getTodos } from '../../businessLogic/TodoService.mjs';
 import { getUserId } from '../utils.mjs'
 import { generateReponse } from '../../response/GenericResponse.mjs';
 import middy from '@middy/core'

@@ -1,7 +1,7 @@
 import { getUserId } from '../utils.mjs';
 import { createLogger } from '../../utils/logger.mjs';
-import { generateReponse } from '../../response/GenericResponse.mjs';
-import { createTodo } from '../../service/TodoService.mjs';
+import { generateReponse, generateReponseWithoutBody } from '../../response/GenericResponse.mjs';
+import { createTodo } from '../../businessLogic/TodoService.mjs';
 import middy from '@middy/core'
 import cors from '@middy/http-cors'
 import httpErrorHandler from '@middy/http-error-handler'
@@ -18,6 +18,8 @@ export const handler = middy()
   let userId = getUserId(event);
   const newTodo = JSON.parse(event.body)
   // TODO: Implement creating a new TODO item
+  if(!(newTodo.name.match(/\S+?$/))) { return generateReponseWithoutBody(400) } 
+  
   let item = "";
   try {
     item = await createTodo(newTodo, userId);

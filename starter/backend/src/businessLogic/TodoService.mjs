@@ -1,4 +1,4 @@
-import { getSingleTodo, getAllTodos, createNewTodo, deleteSingleTodo, updateSingleTodo, addAttachmentUrlToTodo } from "../data/Todo.mjs"
+import { getSingleTodo, getAllTodos, createNewTodo, deleteSingleTodo, updateSingleTodo, addAttachmentUrlToTodo } from "../dataLayer/Todo.mjs"
 import { v4 as uuidv4 } from 'uuid'
 
 export async function todoExists(todoId, userId) {

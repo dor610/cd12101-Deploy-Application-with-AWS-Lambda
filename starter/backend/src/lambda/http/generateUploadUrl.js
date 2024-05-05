@@ -1,7 +1,7 @@
 import { getUserId } from '../utils.mjs';
 import { createLogger } from '../../utils/logger.mjs'
-import { getUploadUrl } from '../../service/AttachmentSerivce.mjs';
-import { todoExists, addAttachmentUrl } from '../../service/TodoService.mjs';
+import { getUploadUrl } from '../../businessLogic/AttachmentSerivce.mjs';
+import { todoExists, addAttachmentUrl } from '../../businessLogic/TodoService.mjs';
 import { generateReponse } from '../../response/GenericResponse.mjs';
 import middy from '@middy/core'
 import cors from '@middy/http-cors'
