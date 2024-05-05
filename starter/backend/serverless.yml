@@ -7,18 +7,18 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs20.x
   tracing:
     lambda: true
     apiGateway: true
-    
+
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
 
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    IMAGES_S3_BUCKET: images-${self:provider.stage}
+    IMAGES_S3_BUCKET: udpj-4-nhk-6102-images-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
 functions:
@@ -55,7 +55,7 @@ functions:
           path: todos
           cors: true
           request:
-            schema:
+            schemas:
               application/json: ${file(models\createTodoModel.json)}
     iamRoleStatements:
       - Effect: Allow
@@ -78,7 +78,7 @@ functions:
           path: todos/{todoId}
           cors: true
           request:
-            schema:
+            schemas:
               application/json: ${file(models\updateTodoModel.json)}
     iamRoleStatements:
       - Effect: Allow
@@ -185,6 +185,11 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.IMAGES_S3_BUCKET}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+        OwnershipControls:
+          Rules:
+            - ObjectOwnership: ObjectWriter
         CorsConfiguration:
           CorsRules:
             -
@@ -204,12 +209,14 @@ resources:
       Type: AWS::S3::BucketPolicy
       Properties:
         PolicyDocument:
-          Id: MyPolicy
+          Id: udpj-4-nhk-602-MyBucketPolicy
           Version: "2012-10-17"
           Statement:
             - Sid: PublicReadForGetBucketObjects
               Effect: Allow
               Principal: '*'
-              Action: 's3:GetObject'
+              Action: 
+                - 's3:GetObject'
+                - 's3:PutObject'
               Resource: 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
         Bucket: !Ref AttachmentsBucket
