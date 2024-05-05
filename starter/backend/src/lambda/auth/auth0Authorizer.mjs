@@ -24,7 +24,7 @@ export async function handler(event) {
       }
     }
   } catch (e) {
-    logger.error('User not authorized', { error: e.message })
+    logger.error(`User not authorized: ${e.message}`)
 
     return {
       principalId: 'user',

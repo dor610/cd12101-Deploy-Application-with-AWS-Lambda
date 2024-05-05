@@ -1,96 +1,49 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { todoExists, getUserId } from '../utils.mjs';
+import { getUserId } from '../utils.mjs';
 import { createLogger } from '../../utils/logger.mjs'
+import { getUploadUrl } from '../../service/AttachmentSerivce.mjs';
+import { todoExists, addAttachmentUrl } from '../../service/TodoService.mjs';
+import { generateReponse } from '../../response/GenericResponse.mjs';
+import middy from '@middy/core'
+import cors from '@middy/http-cors'
+import httpErrorHandler from '@middy/http-error-handler'
 
-const logger = createLogger('auth');
+const logger = createLogger('uploadUrl');
 
-const s3Client = new S3Client();
-const bucketName = process.env.IMAGES_S3_BUCKET;
-const tableName = process.env.TODOS_TABLE;
-const urlExpiration = parseInt(process.env.SIGNED_URL_EXPIRATION);
-
-export async function handler(event) {
+export const handler = middy()
+  .use(httpErrorHandler())
+  .use(
+    cors({
+      credentials: true
+    })
+  ).handler(async (event) => {
   const todoId = event.pathParameters.todoId;
   let userId = getUserId(event);
 
-  if (!todoExists(todoId, userId, tableName)) {
+  if (!todoExists(todoId, userId)) {
     logger.error("Failed to generate upload url ", {
       message: "TODO does not exist",
       todoId: todoId
     });
-    return {
-      statusCode: 404,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true
-      },
-      body: JSON.stringify({
-        error: 'TODO does not exist'
-      })
-    }
+    return generateReponse(404, {
+      error: 'TODO does not exist'
+    });
   }
 
   // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
-  const uploadUrl = await getUploadUrl(todoId);
+  let url = "";
+  try {
+    url = await getUploadUrl(todoId);
+    await addAttachmentUrl(todoId, userId, url.attachmentUrl);
+  } catch (ex) {
+    logger.error(`Unable to create upload url: ${ex.message}`);
+    return generateReponse(500, {
+      message: `Unable to create upload url: ${ex.message}`
+    })
+  }
 
-  const attachmentUrl = `https://${bucketName}.s3.amazonaws.com/${todoId}`;
+  logger.info(`Upload url has been generated successfully, ${url.uploadUrl} `);
 
-  await addAttachmentUrl(todoId, userId, attachmentUrl);
-
-  logger.info("Upload url was generated successfully ", {
-    url: uploadUrl,
-    todoId: todoId
-  });
-
-  return {
-      statusCode: 201,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true
-      },
-      body: JSON.stringify({
-        uploadUrl: uploadUrl
-      })
-    }
-}
-
-async function getUploadUrl(todoId) {
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: todoId
-  });
-  const url = await getSignedUrl(s3Client, command, {
-    expiresIn: urlExpiration
-  });
-
-  return url;
-}
-
-
-async function addAttachmentUrl(todoId, userId, attachmentUrl) {
-  const input = {
-    "ExpressionAttributeNames": {
-      "#AU": "attachmentUrl"
-    },
-    "ExpressionAttributeValues": {
-      ":u": {
-        "S": attachmentUrl
-      }
-    },
-    "Key": {
-      "todoId": {
-        "S": todoId
-      },
-      "userId": {
-        "S": userId
-      }
-    },
-    "ReturnValues": "ALL_NEW",
-    "TableName": tableName,
-    "UpdateExpression": "SET #AU = :u"
-  };
-
-  await dynamoDbDocument.update(input);
-}
-
+  return generateReponse(201, {
+    uploadUrl: url.uploadUrl
+  })
+})

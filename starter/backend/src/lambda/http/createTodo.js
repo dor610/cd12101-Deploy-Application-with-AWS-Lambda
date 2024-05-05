@@ -1,45 +1,38 @@
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
-import { v4 as uuidv4 } from 'uuid'
 import { getUserId } from '../utils.mjs';
-import { createLogger } from '../../utils/logger.mjs'
+import { createLogger } from '../../utils/logger.mjs';
+import { generateReponse } from '../../response/GenericResponse.mjs';
+import { createTodo } from '../../service/TodoService.mjs';
+import middy from '@middy/core'
+import cors from '@middy/http-cors'
+import httpErrorHandler from '@middy/http-error-handler'
 
-const logger = createLogger('auth');
+const logger = createLogger('create');
 
-const dynamoDbDocument = DynamoDBDocument.from(new DynamoDB());
-const tableName = process.env.TODOS_TABLE;
-
-export async function handler(event) {
+export const handler = middy()
+  .use(httpErrorHandler())
+  .use(
+    cors({
+      credentials: true
+    })
+  ).handler(async (event) => {
   let userId = getUserId(event);
   const newTodo = JSON.parse(event.body)
   // TODO: Implement creating a new TODO item
-  const itemId = uuidv4();
-
-  const newItem = {
-    todoId: itemId,
-    userId: userId,
-    attachmentUrl: "",
-    createdAt: new Date().toISOString(),
-    ...newTodo,
-    done: false
+  let item = "";
+  try {
+    item = await createTodo(newTodo, userId);
+  } catch(ex) {
+    logger.error(`Failed to create TODO: ${ex.message}`);
+    return generateReponse(500, {
+      message: "Failed to create TODO ",
+      detail: ex.message,
+      todo: newTodo
+    });
   }
 
-  await dynamoDbDocument.put({
-    TableName: tableName,
-    Item: newItem
-  })
-
-  logger.info("Create TODO ", newItem);
-
-  return {
-    statusCode: 201,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': true
-    },
-    body: JSON.stringify({
-      newItem
-    })
-  }
-}
+  logger.info(`Create TODO: ${item.todoId}`);
+  return generateReponse(201, {
+    item: item
+  });
+});
 

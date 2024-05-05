@@ -1,40 +1,27 @@
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
-import { getUserId } from '../utils.mjs'
 import { createLogger } from '../../utils/logger.mjs'
+import { getTodos } from '../../service/TodoService.mjs';
+import { getUserId } from '../utils.mjs'
+import { generateReponse } from '../../response/GenericResponse.mjs';
+import middy from '@middy/core'
+import cors from '@middy/http-cors'
+import httpErrorHandler from '@middy/http-error-handler'
 
-const logger = createLogger('auth');
+const logger = createLogger('get');
 
-const dynamoDbDocument = DynamoDBDocument.from(new DynamoDB());
-const tableName = process.env.TODOS_TABLE;
-const indexName = process.env.TODOS_CREATED_AT_INDEX;
-
-export async function handler(event) {
+export const handler = middy()
+  .use(httpErrorHandler())
+  .use(
+    cors({
+      credentials: true
+    })
+  ).handler(async (event) =>  {
   // TODO: Get all TODO items for a current user
 
   let userId = getUserId(event);
+  const result = await getTodos(userId);
+  logger.info("Get TODOS: " + result.Items.length);
 
-  let input = {
-    "ExpressionAttributeValues": {
-      ":paritionKey": {
-        "S": userId
-      }
-    },
-    "KeyConditionExpression": "paritionKey  = :uid",
-    "TableName": tableName,
-    "IndexName": indexName
-  };
-
-  let result = await dynamoDbDocument.query(input);
-
-  logger.info("Get TODOS ", result.Items.length);
-
-  return {
-    statusCode: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': true
-    },
-    body: JSON.stringify(result.Items)
-  }
-}
+  return generateReponse(200, {
+    items: result.Items
+  })
+})
