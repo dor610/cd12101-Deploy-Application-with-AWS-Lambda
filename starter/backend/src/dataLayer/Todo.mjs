@@ -55,9 +55,9 @@ export async function updateSingleTodo(todoId, userId, updateData) {
           "#D": "done"
         },
         "ExpressionAttributeValues": {
-          ":dd": updatedTodo.dueDate,
-          ":n": updatedTodo.name,
-          ":d": updatedTodo.done
+          ":dd": updateData.dueDate,
+          ":n": updateData.name,
+          ":d": updateData.done
         },
         "Key": {
           "todoId": todoId,
